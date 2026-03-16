@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Staff Dashboard | BookMyToken</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #2A5C82;
+            --accent-teal: #48B0AD;
+            --bg-grey: #F8FAFC;
+            --text-dark: #1E293B;
+            --text-light: #64748B;
+            --white: #FFFFFF;
+            --border: #E2E8F0;
+            --danger: #ef4444;
+            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+        body {
+            background-color: var(--bg-grey);
+            color: var(--text-dark);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background: var(--white);
+            border-right: 1px solid var(--border);
+            padding: 20px 0;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+            z-index: 10;
+        }
+
+        .logo {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-blue);
+            margin-bottom: 40px;
+            padding: 0 20px;
+        }
+        .logo span { color: var(--accent-teal); }
+
+        .nav-link {
+            padding: 15px 20px;
+            color: var(--text-light);
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            font-weight: 500;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: rgba(72, 176, 173, 0.05);
+            color: var(--accent-teal);
+            border-left-color: var(--accent-teal);
+        }
+        
+        .logout-btn {
+            margin-top: auto;
+            padding: 15px 20px;
+            color: var(--danger);
+            cursor: pointer;
+            transition: background 0.2s;
+            font-weight: 500;
+        }
+        .logout-btn:hover { background: rgba(239, 68, 68, 0.05); }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+            background-image: radial-gradient(circle at top right, #e2e8f0 0%, transparent 40%);
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+        
+        header h2 { color: var(--primary-blue); }
+
+        /* Sections */
+        section {
+            display: none;
+            background: var(--white);
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            margin-bottom: 30px;
+        }
+        section.active-section { display: block; }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .section-header h2 { color: var(--text-dark); font-size: 1.25rem; font-weight: 600; margin-bottom: 0px !important;}
+
+        .btn {
+            background: var(--accent-teal);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: #3b9491; }
+        
+        .btn-sm { padding: 6px 12px; font-size: 0.85rem; font-weight: 500; border: none; border-radius: 4px; cursor: pointer; color: white;}
+        .btn-danger { background: var(--danger); }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-warning { background: #f59e0b; color: #fff; }
+        .btn-warning:hover { background: #d97706; }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-dark);
+            font-size: 0.95rem;
+        }
+
+        th {
+            color: var(--text-light);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .status.active { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+        .status.inactive { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+
+        /* Modals */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: var(--white);
+            padding: 30px;
+            border-radius: 16px;
+            width: 400px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+        
+        .modal-content h3 { color: var(--primary-blue); font-size: 1.25rem; }
+
+        form input, form select {
+            width: 100%;
+            padding: 12px 16px;
+            margin-bottom: 15px;
+            background: #FBFCFD;
+            border: 1.5px solid var(--border);
+            color: var(--text-dark);
+            border-radius: 8px;
+            outline: none;
+            transition: all 0.3s;
+        }
+        form input:focus, form select:focus {
+            border-color: var(--accent-teal);
+            box-shadow: 0 0 0 4px rgba(72, 176, 173, 0.1);
+            background: var(--white);
+        }
+        form label { display: block; margin-bottom: 8px; color: var(--text-dark); font-weight: 600; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="logo">✚ BookMy<span style="color: var(--accent-teal);">Token</span></div>
+        <div class="nav-link active" onclick="switchTab('appointments')" id="tab-appointments">Appointments</div>
+        <div class="nav-link" onclick="switchTab('doctors')" id="tab-doctors">Doctors</div>
+        <div class="nav-link" onclick="switchTab('schedules')" id="tab-schedules">Schedules</div>
+        <div class="logout-btn" onclick="logout()">Logout</div>
+    </div>
+
+    <div class="main-content">
+        <header>
+            <h2 id="hospitalName">Loading...</h2>
+            <div style="color: var(--text-light); font-size: 0.9rem; font-weight: 500;">Hospital Staff Dashboard</div>
+        </header>
+
+        <main class="dashboard-content">
+            <!-- Appointments Section -->
+            <section id="appointmentsSection" class="active-section">
+                <div class="section-header">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <h2>Today's Appointments</h2>
+                        <select id="appointmentDoctorFilter" onchange="filterAppointments()" style="padding: 8px 12px; margin-bottom:0; width:auto;">
+                            <option value="all">All Doctors</option>
+                        </select>
+                    </div>
+                    <button class="btn" onclick="openModal('appointmentModal')">+ Book Appointment</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Token No.</th>
+                            <th>Patient Name</th>
+                            <th>Doctor Name</th>
+                            <th>Date</th>
+                            <th>Source</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="appointmentsTableBody">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Doctors Section -->
+            <section id="doctorsSection">
+                <div class="section-header">
+                    <h2>Hospital Doctors</h2>
+                    <button class="btn" onclick="openModal('doctorModal')">+ Add Doctor</button>
+                </div>
+                <table id="doctorsTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Specialization</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Schedules Section -->
+            <section id="schedulesSection">
+                <div class="section-header">
+                    <h2>Doctor Schedules</h2>
+                    <button class="btn" onclick="openModal('scheduleModal')">+ Add Schedule</button>
+                </div>
+                <table id="schedulesTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Doctor ID</th>
+                            <th>Day</th>
+                            <th>Start</th>
+                            <th>End</th>
+                            <th>Max Tokens</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="doctorModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('doctorModal')" style="float:right; cursor:pointer; font-size:1.5rem; color:var(--text-light);">&times;</span>
+            <h3 style="margin-bottom: 20px;">Add New Doctor</h3>
+            <form id="doctorForm">
+                <input type="text" id="docName" placeholder="Doctor Name" required>
+                <input type="text" id="docSpec" placeholder="Specialization" required>
+                <button type="submit" class="btn" style="width:100%; margin-top:10px;">Save Doctor</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="scheduleModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('scheduleModal')" style="float:right; cursor:pointer; font-size:1.5rem; color:var(--text-light);">&times;</span>
+            <h3 style="margin-bottom: 20px;">Add Schedule</h3>
+            <form id="scheduleForm">
+                <input type="number" id="schedDocId" placeholder="Doctor ID" required>
+                <input type="text" id="schedDay" placeholder="e.g. Monday" required>
+                <label>Start Time</label>
+                <input type="time" id="schedStart" required>
+                <label>End Time</label>
+                <input type="time" id="schedEnd" required>
+                <input type="number" id="schedTokens" placeholder="Max Tokens" required>
+                <button type="submit" class="btn" style="width:100%; margin-top:10px;">Save Schedule</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="editScheduleModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('editScheduleModal')" style="float:right; cursor:pointer; font-size:1.5rem; color:var(--text-light);">&times;</span>
+            <h3 style="margin-bottom: 20px;">Edit Schedule</h3>
+            <form id="editScheduleForm">
+                <input type="hidden" id="editSchedId">
+                <label>Start Time</label>
+                <input type="time" id="editSchedStart" required>
+                <label>End Time</label>
+                <input type="time" id="editSchedEnd" required>
+                <label>Max Tokens</label>
+                <input type="number" id="editSchedTokens" required>
+                <button type="submit" class="btn btn-warning" style="width:100%; border:none; padding:10px; border-radius:6px; font-weight:600; cursor:pointer;">Update Schedule</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="appointmentModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('appointmentModal')" style="float:right; cursor:pointer; font-size:1.5rem; color:var(--text-light);">&times;</span>
+            <h3 style="margin-bottom: 20px;">Book Appointment</h3>
+            <form id="appointmentForm">
+                <select id="aptDocId" required>
+                    <option value="" disabled selected>Select Doctor</option>
+                </select>
+                <input type="text" id="aptPatientName" placeholder="Patient Name" required>
+                <input type="date" id="aptDate" required>
+                <select id="aptScheduleId" required disabled>
+                    <option value="" disabled selected>Select Date First</option>
+                </select>
+                <button type="submit" class="btn" style="width:100%; margin-top:10px;">Book Now</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="dashboard.js"></script>
+    <script>
+        // Override switchTab to update the active sidebar states too
+        function switchTab(sectionId) {
+            // Let dashboard.js handle the section toggling
+            showSection(sectionId);
+            
+            // Update the sidebar highlight
+            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + sectionId).classList.add('active');
+        }
+
+        // Override openModal/closeModal slightly for flex display
+        function openModal(modalId) {
+            if (modalId === 'appointmentModal') {
+                populateDoctorDropdown();
+                const schedSelect = document.getElementById('aptScheduleId');
+                schedSelect.innerHTML = '<option value="" disabled selected>Select Date First</option>';
+                schedSelect.disabled = true;
+            }
+            document.getElementById(modalId).style.display = "flex";
+        }
+        function closeModal(modalId) { 
+            document.getElementById(modalId).style.display = "none"; 
+        }
+        window.onclick = function (event) {
+            if (event.target.classList.contains('modal')) event.target.style.display = "none";
+        }
+    </script>
+</body>
+</html>

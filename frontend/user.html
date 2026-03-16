@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BookMyToken | Hospital Appointment</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #2A5C82;
+            --accent-teal: #48B0AD;
+            --bg-grey: #F8FAFC;
+            --text-dark: #1E293B;
+            --text-light: #64748B;
+            --white: #FFFFFF;
+            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-grey);
+            background-image: radial-gradient(circle at top right, #e2e8f0 0%, transparent 40%);
+            color: var(--text-dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Header --- */
+        header {
+            background: var(--white);
+            padding: 1rem 10%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: var(--primary-blue);
+        }
+
+        .logo span {
+            color: var(--accent-teal);
+        }
+
+        /* --- Main Content --- */
+        main {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        .booking-card {
+            background: var(--white);
+            width: 100%;
+            max-width: 500px;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        .booking-card h2 {
+            font-size: 1.75rem;
+            margin-bottom: 8px;
+            text-align: center;
+            color: var(--primary-blue);
+        }
+
+        .booking-card p {
+            font-size: 0.95rem;
+            color: var(--text-light);
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        /* --- Form Elements --- */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-dark);
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1.5px solid #E2E8F0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            outline: none;
+            background-color: #FBFCFD;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--accent-teal);
+            box-shadow: 0 0 0 4px rgba(72, 176, 173, 0.1);
+            background-color: var(--white);
+        }
+
+        .submit-btn {
+            width: 100%;
+            background-color: var(--accent-teal);
+            color: var(--white);
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s ease, transform 0.2s ease;
+            margin-top: 10px;
+        }
+
+        .submit-btn:hover {
+            background-color: #3b9491;
+            transform: translateY(-1px);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 480px) {
+            .booking-card {
+                padding: 25px;
+            }
+        }
+
+        /* --- Modals and Alerts --- */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: var(--white);
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .modal-content h3 {
+            color: var(--primary-blue);
+            margin-bottom: 15px;
+        }
+
+        .token-display {
+            font-size: 3rem;
+            color: var(--accent-teal);
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        .close-btn {
+            background: #E2E8F0;
+            color: var(--text-dark);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
+        .my-appointments-panel {
+            display: none;
+            margin-top: 20px;
+            width: 100%;
+            max-width: 500px;
+            background: var(--white);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+
+        .appointment-item {
+            border: 1px solid #E2E8F0;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-align: left;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        
+        .header-links {
+            display: flex;
+            gap: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">✚ BookMy<span>Token</span></div>
+        <div class="header-links">
+            <div style="font-size: 0.9rem; color: var(--text-dark); font-weight: 500; cursor: pointer;" onclick="toggleAppointmentsPanel()">My Appointments</div>
+            <div style="font-size: 0.9rem; color: var(--text-light); font-weight: 500; cursor: pointer;" onclick="window.location.href='login.html'">Staff Login</div>
+        </div>
+    </header>
+
+    <main>
+        <section class="booking-card">
+            <h2>Book Appointment</h2>
+            <p>Enter your details to schedule a consultation</p>
+
+            <form id="appointmentForm">
+                <div class="form-group">
+                    <label for="name">Patient Name</label>
+                    <input type="text" id="name" placeholder="e.g. John Doe" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="tel" id="phone" placeholder="+1 (555) 000-0000" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="hospital">Select Hospital</label>
+                    <select id="hospital" required>
+                        <option value="" disabled selected>Loading hospitals...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="doctor">Select Doctor</label>
+                    <select id="doctor" required disabled>
+                        <option value="" disabled selected>Select Hospital First</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="schedule">Select Schedule</label>
+                    <select id="schedule" required disabled>
+                        <option value="" disabled selected>Select Doctor First</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="submit-btn">Confirm Appointment</button>
+            </form>
+        </section>
+        
+        <section class="my-appointments-panel" id="appointmentsPanel">
+            <h2>Manage Appointments</h2>
+            <div class="form-group" style="margin-top: 15px;">
+                <input type="text" id="lookupName" placeholder="Your Name" style="margin-bottom: 10px;">
+                <input type="tel" id="lookupPhone" placeholder="Your Phone Number">
+                <button type="button" class="submit-btn" style="padding: 10px; margin-top: 10px;" onclick="fetchAppointments()">Find My Appointments</button>
+            </div>
+            <div id="appointmentsList" style="margin-top: 20px;"></div>
+        </section>
+    </main>
+
+    <!-- Success Modal -->
+    <div class="modal" id="successModal">
+        <div class="modal-content">
+            <h3>Booking Confirmed!</h3>
+            <p>Your appointment has been successfully booked.</p>
+            <div class="token-display" id="displayToken">--</div>
+            <p><strong>Date:</strong> <span id="displayDate"></span></p>
+            <p><strong>Doctor:</strong> <span id="displayDoctor"></span></p>
+            <button class="close-btn" onclick="closeModal()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8000';
+
+        // Load Hospitals on strictly page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch(`${API_URL}/hospitals/`);
+                const hospitals = await response.json();
+                const hospitalSelect = document.getElementById('hospital');
+                hospitalSelect.innerHTML = '<option value="" disabled selected>Choose a facility</option>';
+                hospitals.forEach(h => {
+                    hospitalSelect.innerHTML += `<option value="${h.id}">${h.name} (${h.city})</option>`;
+                });
+            } catch (err) {
+                console.error("Error loading hospitals:", err);
+            }
+        });
+
+        // Load Doctors when Hospital changes
+        document.getElementById('hospital').addEventListener('change', async (e) => {
+            const hospitalId = e.target.value;
+            const doctorSelect = document.getElementById('doctor');
+            const scheduleSelect = document.getElementById('schedule');
+            
+            doctorSelect.disabled = false;
+            scheduleSelect.disabled = true;
+            scheduleSelect.innerHTML = '<option value="" disabled selected>Select Doctor First</option>';
+            doctorSelect.innerHTML = '<option value="" disabled selected>Loading doctors...</option>';
+
+            try {
+                const response = await fetch(`${API_URL}/doctors/hospital/${hospitalId}`);
+                const doctors = await response.json();
+                doctorSelect.innerHTML = '<option value="" disabled selected>Choose a specialist</option>';
+                doctors.forEach(d => {
+                    doctorSelect.innerHTML += `<option value="${d.id}">${d.name} - ${d.specialization}</option>`;
+                });
+            } catch (err) {
+                console.error("Error loading doctors:", err);
+            }
+        });
+
+        // Load Schedules when Doctor changes
+        document.getElementById('doctor').addEventListener('change', async (e) => {
+            const doctorId = e.target.value;
+            const scheduleSelect = document.getElementById('schedule');
+            
+            scheduleSelect.disabled = false;
+            scheduleSelect.innerHTML = '<option value="" disabled selected>Loading schedules...</option>';
+
+            try {
+                const response = await fetch(`${API_URL}/doctors/doctor-schedules/${doctorId}`);
+                const schedules = await response.json();
+                scheduleSelect.innerHTML = '<option value="" disabled selected>Choose a time slot</option>';
+                schedules.forEach(s => {
+                    // Truncate seconds from time strings for better display
+                    const start = s.start_time.substring(0, 5);
+                    const end = s.end_time.substring(0, 5);
+                    scheduleSelect.innerHTML += `<option value="${s.id}">${s.day_of_week}s, ${start} - ${end}</option>`;
+                });
+            } catch (err) {
+                console.error("Error loading schedules:", err);
+            }
+        });
+
+        // Handle Booking Submission
+        document.getElementById('appointmentForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.querySelector('.submit-btn');
+            submitBtn.textContent = 'Booking...';
+            submitBtn.disabled = true;
+
+            const payload = {
+                hospital_id: parseInt(document.getElementById('hospital').value),
+                doctor_id: parseInt(document.getElementById('doctor').value),
+                schedule_id: parseInt(document.getElementById('schedule').value),
+                patient_name: document.getElementById('name').value,
+                patient_phone: document.getElementById('phone').value,
+                appointment_date: getNextDateForDayOfWeek(document.getElementById('schedule').options[document.getElementById('schedule').selectedIndex].text.split('s,')[0]),
+                booking_source: "website"
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/appointments/public-book`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('displayToken').textContent = data.token_number;
+                    document.getElementById('displayDate').textContent = data.appointment_date;
+                    document.getElementById('displayDoctor').textContent = document.getElementById('doctor').options[document.getElementById('doctor').selectedIndex].text.split(' -')[0];
+                    document.getElementById('successModal').style.display = 'flex';
+                    document.getElementById('appointmentForm').reset();
+                    
+                    // Reset dropdowns
+                    document.getElementById('doctor').disabled = true;
+                    document.getElementById('schedule').disabled = true;
+                    document.getElementById('doctor').innerHTML = '<option value="" disabled selected>Select Hospital First</option>';
+                    document.getElementById('schedule').innerHTML = '<option value="" disabled selected>Select Doctor First</option>';
+                } else {
+                    const err = await response.json();
+                    alert("Booking failed: " + err.detail);
+                }
+            } catch (err) {
+                console.error("Booking error:", err);
+                alert("An error occurred. Please try again.");
+            } finally {
+                submitBtn.textContent = 'Confirm Appointment';
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Helper function to figure out the next date for a given day name (e.g. "Monday")
+        function getNextDateForDayOfWeek(dayName) {
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const targetDay = days.indexOf(dayName);
+            const today = new Date();
+            const currentDay = today.getDay();
+            
+            let daysToAdd = targetDay - currentDay;
+            if (daysToAdd <= 0) { daysToAdd += 7; } // Always book for next available
+            
+            const targetDate = new Date();
+            targetDate.setDate(today.getDate() + daysToAdd);
+            return targetDate.toISOString().split('T')[0];
+        }
+
+        // --- Manage Appointments Logic --- //
+        
+        function toggleAppointmentsPanel() {
+            const panel = document.getElementById('appointmentsPanel');
+            const form = document.querySelector('.booking-card');
+            
+            if (panel.style.display === 'block') {
+                panel.style.display = 'none';
+                form.style.display = 'block';
+            } else {
+                panel.style.display = 'block';
+                form.style.display = 'none';
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('successModal').style.display = 'none';
+        }
+
+        async function fetchAppointments() {
+            const phone = document.getElementById('lookupPhone').value;
+            const name = document.getElementById('lookupName').value;
+            if(!phone || !name) return alert("Please enter both Name and Phone.");
+
+            const listDiv = document.getElementById('appointmentsList');
+            listDiv.innerHTML = 'Loading...';
+
+            try {
+                // we lookup by name + phone string in the API
+                const qPhone = encodeURIComponent(phone);
+                const qName = encodeURIComponent(name);
+                const response = await fetch(`${API_URL}/appointments/patient/${qPhone}?name=${qName}`);
+                
+                if (response.ok) {
+                    const appts = await response.json();
+                    if(appts.length === 0) {
+                        listDiv.innerHTML = '<p style="color: grey;">No upcoming appointments found.</p>';
+                        return;
+                    }
+
+                    listDiv.innerHTML = '';
+                    appts.forEach(a => {
+                        listDiv.innerHTML += `
+                            <div class="appointment-item" id="appt-${a.id}">
+                                <div>
+                                    <div style="font-weight: bold; color: var(--primary-blue);">Doctor: ${a.doctor_name}</div>
+                                    <div style="font-size: 0.85rem; color: var(--text-dark); margin-top: 4px;">Token: ${a.token_number}</div>
+                                    <div style="font-size: 0.85rem; color: var(--text-light);">${a.appointment_date}</div>
+                                </div>
+                                <button class="btn-danger" onclick="cancelAppointment(${a.id}, '${name}', '${phone}')">Cancel</button>
+                            </div>
+                        `;
+                    });
+                } else {
+                    listDiv.innerHTML = '<p style="color: red;">Failed to fetch appointments.</p>';
+                }
+            } catch(e) {
+                console.error(e);
+                listDiv.innerHTML = '<p style="color: red;">Connection error.</p>';
+            }
+        }
+
+        async function cancelAppointment(id, name, phone) {
+            if(!confirm("Are you sure you want to cancel this appointment?")) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/appointments/public-cancel/${id}?name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    document.getElementById(`appt-${id}`).remove();
+                    alert("Appointment cancelled successfully.");
+                } else {
+                    const err = await response.json();
+                    alert("Failed to cancel: " + err.detail);
+                }
+            } catch(e) {
+                console.error(e);
+                alert("An error occurred.");
+            }
+        }
+    </script>
+  
+
+</body>
+</html>
