@@ -3,11 +3,14 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 import os
-from dotenv import load_dotenv
 
 # Build the path to the .env file (one level up from the backend folder)
 env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
-load_dotenv(dotenv_path=env_path)
+try:
+    from dotenv import load_dotenv
+    load_dotenv(dotenv_path=env_path)
+except ImportError:
+    pass  # On Render, env vars are set directly — no .env file needed
 
 # Fallback to local if not found
 SQLALCHEMY_DATABASE_URL = os.getenv(
