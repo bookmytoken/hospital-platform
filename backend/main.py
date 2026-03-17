@@ -1,5 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
 
 # Import database engine and Base for table creation
 from backend.database import engine, Base
@@ -56,6 +59,10 @@ app.include_router(appointment_router)
 app.include_router(auth_router)
 app.include_router(admin_router)
 
+# Serve frontend static files
+frontend_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
+app.mount("/app", StaticFiles(directory=frontend_path, html=True), name="frontend")
+
 @app.get("/")
 def read_root():
-    return {"message": "Welcome to the Hospital SaaS Platform API"}
+    return FileResponse(os.path.join(frontend_path, "user.html"))

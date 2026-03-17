@@ -1,10 +1,10 @@
-const API_URL = 'http://127.0.0.1:8000';
+const API_URL = 'https://hospital-platform.onrender.com';
 const token = localStorage.getItem('hospital_token');
 const currentHospitalId = localStorage.getItem('hospital_id');
 
 // Redirect to login if no token is found
 if (!token) {
-    window.location.href = 'login.html';
+    window.location.href = '/app/login.html';
 }
 
 let hospitalConfig = null;
@@ -503,7 +503,7 @@ document.getElementById('appointmentForm').addEventListener('submit', async (e) 
 function logout() {
     localStorage.removeItem('hospital_token');
     localStorage.removeItem('hospital_id');
-    window.location.href = 'login.html';
+    window.location.href = '/app/login.html';
 }
 
 async function deleteSchedule(id) {
