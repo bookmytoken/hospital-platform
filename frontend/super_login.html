@@ -107,12 +107,34 @@
         }
         
         #errorMessage {
-            color: #ef4444;
             font-size: 0.85rem;
             text-align: center;
             margin-top: 15px;
             display: none;
+            padding: 10px 14px;
+            border-radius: 8px;
         }
+        #errorMessage.auth-error {
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.06);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+        #errorMessage.access-denied {
+            color: #b45309;
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.25);
+        }
+        .back-home {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .back-home a {
+            color: var(--text-light);
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .back-home a:hover { color: var(--accent-teal); }
     </style>
 </head>
 <body>
@@ -131,8 +153,11 @@
                 <input type="password" id="password" required placeholder="••••••••">
             </div>
             <button type="submit" class="btn" id="loginBtn">Authenticate</button>
-            <div id="errorMessage">Invalid credentials or unauthorized role.</div>
+            <div id="errorMessage"></div>
         </form>
+        <div class="back-home">
+            <a href="user.html">← Back to Home</a>
+        </div>
     </div>
 
     <script>
@@ -177,7 +202,20 @@
                         errorMsg.style.display = 'block';
                     }
                 } else {
-                    errorMsg.textContent = "Invalid credentials.";
+                    let errorText = 'Invalid credentials.';
+                    try {
+                        const errData = await response.json();
+                        if (response.status === 403) {
+                            errorMsg.className = 'access-denied';
+                            errorText = '⛔ ' + (errData.detail || 'Access Denied.');
+                        } else {
+                            errorMsg.className = 'auth-error';
+                            errorText = errData.detail || errorText;
+                        }
+                    } catch (_) {
+                        errorMsg.className = 'auth-error';
+                    }
+                    errorMsg.textContent = errorText;
                     errorMsg.style.display = 'block';
                 }
             } catch (err) {

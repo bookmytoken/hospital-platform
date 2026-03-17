@@ -11,6 +11,7 @@ class HospitalCreate(BaseModel):
     name: str
     city: str
     phone_number: str
+    booking_window_days: int = 7
 
 class HospitalResponse(HospitalCreate):
     id: int
@@ -20,7 +21,12 @@ class HospitalResponse(HospitalCreate):
 
 @router.post("/add-hospital", response_model=HospitalResponse)
 def add_hospital(hospital: HospitalCreate, db: Session = Depends(get_db)):
-    db_hospital = Hospital(**hospital.dict())
+    db_hospital = Hospital(
+        name=hospital.name,
+        city=hospital.city,
+        phone_number=hospital.phone_number,
+        booking_window_days=hospital.booking_window_days
+    )
     db.add(db_hospital)
     db.commit()
     db.refresh(db_hospital)

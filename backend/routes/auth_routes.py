@@ -37,6 +37,22 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    # Block login if staff account is deactivated
+    if hasattr(user, 'is_active') and not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This account has been deactivated. Please contact your administrator."
+        )
+
+    # Block login if the hospital is deactivated (for non-super-admins)
+    if user.role != "super_admin" and user.hospital:
+        from backend.models.hospital import Hospital
+        if hasattr(user.hospital, 'is_active') and not user.hospital.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This hospital has been deactivated. Please contact the platform administrator."
+            )
     
     # Create valid JWT token
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)

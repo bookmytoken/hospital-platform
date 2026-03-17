@@ -15,6 +15,7 @@
             --white: #FFFFFF;
             --border: #E2E8F0;
             --danger: #ef4444;
+            --success: #10b981;
             --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
         }
 
@@ -211,6 +212,7 @@
         <div class="nav-link active" onclick="switchTab('appointments')" id="tab-appointments">Appointments</div>
         <div class="nav-link" onclick="switchTab('doctors')" id="tab-doctors">Doctors</div>
         <div class="nav-link" onclick="switchTab('schedules')" id="tab-schedules">Schedules</div>
+        <div class="nav-link" onclick="switchTab('cancelled')" id="tab-cancelled">Cancelled</div>
         <div class="logout-btn" onclick="logout()">Logout</div>
     </div>
 
@@ -229,10 +231,17 @@
                         <select id="appointmentDoctorFilter" onchange="filterAppointments()" style="padding: 8px 12px; margin-bottom:0; width:auto;">
                             <option value="all">All Doctors</option>
                         </select>
+                        <input type="date" id="appointmentSpecificDate" onchange="filterAppointments()" style="padding: 8px 12px; margin-bottom:0; width:auto;">
+                        <select id="appointmentStatusFilter" onchange="filterAppointments()" style="padding: 8px 12px; margin-bottom:0; width:auto;">
+                            <option value="pending" selected>Pending</option>
+                            <option value="visited">Visited</option>
+                            <option value="cancelled">Cancelled</option>
+                            <option value="all">All Status</option>
+                        </select>
                     </div>
                     <button class="btn" onclick="openModal('appointmentModal')">+ Book Appointment</button>
                 </div>
-                <table>
+                <table id="appointmentsTable">
                     <thead>
                         <tr>
                             <th>Token No.</th>
@@ -243,7 +252,7 @@
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="appointmentsTableBody">
+                    <tbody>
                         <!-- Populated by JS -->
                     </tbody>
                 </table>
@@ -287,6 +296,30 @@
                             <th>End</th>
                             <th>Max Tokens</th>
                             <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Cancelled Section -->
+            <section id="cancelledSection">
+                <div class="section-header">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <h2>Cancelled Appointments</h2>
+                        <input type="date" id="cancelledSpecificDate" onchange="filterCancelled()" style="padding: 8px 12px; margin-bottom:0; width:auto;">
+                    </div>
+                </div>
+                <table id="cancelledTable">
+                    <thead>
+                        <tr>
+                            <th>Token</th>
+                            <th>Patient</th>
+                            <th>Doctor</th>
+                            <th>Date</th>
+                            <th>Reason/Status</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -353,6 +386,7 @@
                     <option value="" disabled selected>Select Doctor</option>
                 </select>
                 <input type="text" id="aptPatientName" placeholder="Patient Name" required>
+                <input type="tel" id="aptPatientPhone" placeholder="Patient Phone (e.g. 9876543210)" required>
                 <input type="date" id="aptDate" required>
                 <select id="aptScheduleId" required disabled>
                     <option value="" disabled selected>Select Date First</option>
@@ -363,33 +397,5 @@
     </div>
 
     <script src="dashboard.js"></script>
-    <script>
-        // Override switchTab to update the active sidebar states too
-        function switchTab(sectionId) {
-            // Let dashboard.js handle the section toggling
-            showSection(sectionId);
-            
-            // Update the sidebar highlight
-            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-            document.getElementById('tab-' + sectionId).classList.add('active');
-        }
-
-        // Override openModal/closeModal slightly for flex display
-        function openModal(modalId) {
-            if (modalId === 'appointmentModal') {
-                populateDoctorDropdown();
-                const schedSelect = document.getElementById('aptScheduleId');
-                schedSelect.innerHTML = '<option value="" disabled selected>Select Date First</option>';
-                schedSelect.disabled = true;
-            }
-            document.getElementById(modalId).style.display = "flex";
-        }
-        function closeModal(modalId) { 
-            document.getElementById(modalId).style.display = "none"; 
-        }
-        window.onclick = function (event) {
-            if (event.target.classList.contains('modal')) event.target.style.display = "none";
-        }
-    </script>
 </body>
 </html>

@@ -15,6 +15,7 @@ class Appointment(Base):
     appointment_date = Column(Date, nullable=False)
     token_number = Column(Integer, nullable=False)
     booking_source = Column(String, nullable=False) # call, whatsapp, dashboard
+    status = Column(String, default="pending") # pending, visited, cancelled
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     hospital = relationship("Hospital")

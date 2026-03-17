@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 import datetime
 from backend.database import Base
@@ -12,6 +12,7 @@ class HospitalStaff(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
     role = Column(String, nullable=False) # admin or receptionist or super_admin
+    is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     hospital = relationship("Hospital")

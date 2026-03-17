@@ -221,6 +221,17 @@
             display: flex;
             gap: 20px;
         }
+
+        .status-badge {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-pending { background: #e0f2f1; color: var(--accent-teal); }
+        .status-visited { background: #e8f5e9; color: #2e7d32; }
+        .status-cancelled { background: #ffebee; color: #c62828; }
     </style>
 </head>
 <body>
@@ -261,6 +272,11 @@
                     <select id="doctor" required disabled>
                         <option value="" disabled selected>Select Hospital First</option>
                     </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="aptDate">Select Date</label>
+                    <input type="date" id="aptDate" required disabled>
                 </div>
 
                 <div class="form-group">
@@ -333,32 +349,76 @@
                 doctors.forEach(d => {
                     doctorSelect.innerHTML += `<option value="${d.id}">${d.name} - ${d.specialization}</option>`;
                 });
+                
+                // Set Date limits
+                const hosp = hospitalsData.find(h => h.id == hospitalId);
+                const dateInput = document.getElementById('aptDate');
+                if (hosp && dateInput) {
+                    const today = new Date();
+                    const maxDate = new Date();
+                    // If window is 1, maxDate should be today.
+                    maxDate.setDate(today.getDate() + (hosp.booking_window_days - 1));
+                    
+                    dateInput.min = today.toISOString().split('T')[0];
+                    dateInput.max = maxDate.toISOString().split('T')[0];
+                    dateInput.disabled = false;
+                }
             } catch (err) {
                 console.error("Error loading doctors:", err);
             }
         });
 
-        // Load Schedules when Doctor changes
-        document.getElementById('doctor').addEventListener('change', async (e) => {
-            const doctorId = e.target.value;
-            const scheduleSelect = document.getElementById('schedule');
-            
-            scheduleSelect.disabled = false;
-            scheduleSelect.innerHTML = '<option value="" disabled selected>Loading schedules...</option>';
+        let hospitalsData = [];
+        document.addEventListener('DOMContentLoaded', async () => {
+             const response = await fetch(`${API_URL}/hospitals/`);
+             hospitalsData = await response.json();
+             const hospitalSelect = document.getElementById('hospital');
+             hospitalSelect.innerHTML = '<option value="" disabled selected>Choose a facility</option>';
+             hospitalsData.forEach(h => {
+                 hospitalSelect.innerHTML += `<option value="${h.id}">${h.name} (${h.city})</option>`;
+             });
+        });
 
-            try {
-                const response = await fetch(`${API_URL}/doctors/doctor-schedules/${doctorId}`);
-                const schedules = await response.json();
-                scheduleSelect.innerHTML = '<option value="" disabled selected>Choose a time slot</option>';
-                schedules.forEach(s => {
-                    // Truncate seconds from time strings for better display
-                    const start = s.start_time.substring(0, 5);
-                    const end = s.end_time.substring(0, 5);
-                    scheduleSelect.innerHTML += `<option value="${s.id}">${s.day_of_week}s, ${start} - ${end}</option>`;
-                });
-            } catch (err) {
-                console.error("Error loading schedules:", err);
-            }
+        // Load Schedules when Doctor or Date changes
+        const doctorSelect = document.getElementById('doctor');
+        const dateInput = document.getElementById('aptDate');
+        
+        [doctorSelect, dateInput].forEach(el => {
+            el.addEventListener('change', async () => {
+                const doctorId = doctorSelect.value;
+                const dateStr = dateInput.value;
+                const scheduleSelect = document.getElementById('schedule');
+                
+                if (!doctorId || !dateStr) return;
+
+                scheduleSelect.disabled = false;
+                scheduleSelect.innerHTML = '<option value="" disabled selected>Loading schedules...</option>';
+
+                const dateObj = new Date(dateStr);
+                const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                const selectedDay = days[dateObj.getDay()];
+
+                try {
+                    const response = await fetch(`${API_URL}/doctors/doctor-schedules/${doctorId}`);
+                    const schedules = await response.json();
+                    
+                    const matching = schedules.filter(s => s.day_of_week.toLowerCase() === selectedDay.toLowerCase());
+                    
+                    if (matching.length === 0) {
+                        scheduleSelect.innerHTML = `<option value="" disabled selected>No shifts on ${selectedDay}</option>`;
+                        scheduleSelect.disabled = true;
+                    } else {
+                        scheduleSelect.innerHTML = '<option value="" disabled selected>Choose a time slot</option>';
+                        matching.forEach(s => {
+                            const start = s.start_time.substring(0, 5);
+                            const end = s.end_time.substring(0, 5);
+                            scheduleSelect.innerHTML += `<option value="${s.id}">${start} - ${end}</option>`;
+                        });
+                    }
+                } catch (err) {
+                    console.error("Error loading schedules:", err);
+                }
+            });
         });
 
         // Handle Booking Submission
@@ -375,7 +435,7 @@
                 schedule_id: parseInt(document.getElementById('schedule').value),
                 patient_name: document.getElementById('name').value,
                 patient_phone: document.getElementById('phone').value,
-                appointment_date: getNextDateForDayOfWeek(document.getElementById('schedule').options[document.getElementById('schedule').selectedIndex].text.split('s,')[0]),
+                appointment_date: document.getElementById('aptDate').value,
                 booking_source: "website"
             };
 
@@ -469,14 +529,18 @@
 
                     listDiv.innerHTML = '';
                     appts.forEach(a => {
+                        const canCancel = a.status === 'pending';
                         listDiv.innerHTML += `
                             <div class="appointment-item" id="appt-${a.id}">
                                 <div>
-                                    <div style="font-weight: bold; color: var(--primary-blue);">Doctor: ${a.doctor_name}</div>
+                                    <div style="font-weight: bold; color: var(--primary-blue); display:flex; align-items:center; gap:10px;">
+                                        Doctor: ${a.doctor_name}
+                                        <span class="status-badge status-${a.status}">${a.status}</span>
+                                    </div>
                                     <div style="font-size: 0.85rem; color: var(--text-dark); margin-top: 4px;">Token: ${a.token_number}</div>
                                     <div style="font-size: 0.85rem; color: var(--text-light);">${a.appointment_date}</div>
                                 </div>
-                                <button class="btn-danger" onclick="cancelAppointment(${a.id}, '${name}', '${phone}')">Cancel</button>
+                                ${canCancel ? `<button class="btn-danger" onclick="cancelAppointment(${a.id}, '${name}', '${phone}')">Cancel</button>` : ''}
                             </div>
                         `;
                     });

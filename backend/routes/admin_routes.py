@@ -31,6 +31,9 @@ class StatsResponse(BaseModel):
     total_hospitals: int
     total_doctors: int
     total_staff: int
+    total_appointments_today: int
+    total_appointments: int
+    most_active_hospital: str
 
 class StaffCreateAdmin(BaseModel):
     hospital_id: int
@@ -46,6 +49,7 @@ class StaffResponse(BaseModel):
     name: str
     email: str
     role: str
+    is_active: bool = True
 
     class Config:
         from_attributes = True
@@ -54,40 +58,95 @@ class StaffResponse(BaseModel):
 
 @router.get("/stats", response_model=StatsResponse)
 def get_dashboard_stats(db: Session = Depends(get_db), current_admin: HospitalStaff = Depends(get_super_admin)):
+    import datetime
     hospitals = db.query(Hospital).count()
     doctors = db.query(Doctor).count()
     staff = db.query(HospitalStaff).filter(HospitalStaff.role != "super_admin").count()
+    total_appointments = db.query(Appointment).count()
+    today = datetime.date.today()
+    today_appointments = db.query(Appointment).filter(Appointment.appointment_date == today).count()
+
+    # Most active hospital by appointment count
+    from sqlalchemy import func
+    result = db.query(Appointment.hospital_id, func.count(Appointment.id).label('cnt')) \
+               .group_by(Appointment.hospital_id).order_by(func.count(Appointment.id).desc()).first()
+    most_active = "—"
+    if result:
+        h = db.query(Hospital).filter(Hospital.id == result.hospital_id).first()
+        if h:
+            most_active = h.name
+
     return {
         "total_hospitals": hospitals,
         "total_doctors": doctors,
-        "total_staff": staff
+        "total_staff": staff,
+        "total_appointments_today": today_appointments,
+        "total_appointments": total_appointments,
+        "most_active_hospital": most_active
     }
 
 class HospitalCreateAdmin(BaseModel):
     name: str
     city: str
     phone_number: str
+    booking_window_days: int = 7
 
 class HospitalUpdateAdmin(BaseModel):
     name: str
     city: str
     phone_number: str
+    booking_window_days: int
 
 class HospitalResponseAdmin(BaseModel):
     id: int
     name: str
     city: str
     phone_number: str
-    
+    booking_window_days: int
+    is_active: bool = True
+    doctor_count: int = 0
+
     class Config:
         from_attributes = True
+
+@router.get("/hospitals", response_model=List[HospitalResponseAdmin])
+def list_hospitals(db: Session = Depends(get_db), current_admin: HospitalStaff = Depends(get_super_admin)):
+    hospitals = db.query(Hospital).all()
+    result = []
+    for h in hospitals:
+        doc_count = db.query(Doctor).filter(Doctor.hospital_id == h.id).count()
+        result.append({
+            "id": h.id, "name": h.name, "city": h.city,
+            "phone_number": h.phone_number,
+            "booking_window_days": h.booking_window_days,
+            "is_active": h.is_active,
+            "doctor_count": doc_count
+        })
+    return result
+
+@router.put("/hospitals/{hospital_id}/toggle-status")
+def toggle_hospital_status(hospital_id: int, db: Session = Depends(get_db), current_admin: HospitalStaff = Depends(get_super_admin)):
+    hospital = db.query(Hospital).filter(Hospital.id == hospital_id).first()
+    if not hospital:
+        raise HTTPException(status_code=404, detail="Hospital not found")
+    hospital.is_active = not hospital.is_active
+    # Cascade: deactivate all staff when hospital is deactivated
+    if not hospital.is_active:
+        db.query(HospitalStaff).filter(
+            HospitalStaff.hospital_id == hospital_id,
+            HospitalStaff.role != "super_admin"
+        ).update({"is_active": False})
+    db.commit()
+    state = "Active" if hospital.is_active else "Inactive"
+    return {"message": f"Hospital status changed to {state}", "is_active": hospital.is_active}
 
 @router.post("/hospitals", response_model=HospitalResponseAdmin)
 def create_hospital(hosp_data: HospitalCreateAdmin, db: Session = Depends(get_db), current_admin: HospitalStaff = Depends(get_super_admin)):
     new_hospital = Hospital(
         name=hosp_data.name,
         city=hosp_data.city,
-        phone_number=hosp_data.phone_number
+        phone_number=hosp_data.phone_number,
+        booking_window_days=hosp_data.booking_window_days
     )
     db.add(new_hospital)
     db.commit()
@@ -120,6 +179,7 @@ def update_hospital(hospital_id: int, hosp_data: HospitalUpdateAdmin, db: Sessio
     hospital.name = hosp_data.name
     hospital.city = hosp_data.city
     hospital.phone_number = hosp_data.phone_number
+    hospital.booking_window_days = hosp_data.booking_window_days
     
     db.commit()
     db.refresh(hospital)
@@ -189,17 +249,29 @@ def get_all_staff(db: Session = Depends(get_db), current_admin: HospitalStaff = 
     # Map the ORM relationship data over so Pydantic can read it
     result = []
     for staff in staff_list:
-        staff_data = {
+        result.append({
             "id": staff.id,
             "hospital_id": staff.hospital_id,
             "hospital_name": staff.hospital.name if staff.hospital else None,
             "name": staff.name,
             "email": staff.email,
-            "role": staff.role
-        }
-        result.append(staff_data)
+            "role": staff.role,
+            "is_active": staff.is_active
+        })
         
     return result
+
+@router.put("/staff/{staff_id}/toggle-status")
+def toggle_staff_status(staff_id: int, db: Session = Depends(get_db), current_admin: HospitalStaff = Depends(get_super_admin)):
+    staff = db.query(HospitalStaff).filter(HospitalStaff.id == staff_id).first()
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff member not found")
+    if staff.id == current_admin.id:
+        raise HTTPException(status_code=400, detail="Cannot deactivate yourself")
+    staff.is_active = not staff.is_active
+    db.commit()
+    state = "Active" if staff.is_active else "Inactive"
+    return {"message": f"Staff status changed to {state}", "is_active": staff.is_active}
 
 @router.delete("/staff/{staff_id}")
 def delete_staff(staff_id: int, db: Session = Depends(get_db), current_admin: HospitalStaff = Depends(get_super_admin)):

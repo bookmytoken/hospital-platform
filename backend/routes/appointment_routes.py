@@ -34,9 +34,23 @@ class AppointmentResponse(BaseModel):
     appointment_date: datetime.date
     token_number: int
     booking_source: str
+    status: str
 
     class Config:
         from_attributes = True
+
+@router.put("/{appointment_id}/status")
+def update_appointment_status(appointment_id: int, status: str, db: Session = Depends(get_db), current_user: HospitalStaff = Depends(get_current_user)):
+    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+    if not appointment or appointment.hospital_id != current_user.hospital_id:
+        raise HTTPException(status_code=403, detail="Not authorized or appointment not found")
+    
+    if status not in ["pending", "visited", "cancelled"]:
+        raise HTTPException(status_code=400, detail="Invalid status")
+        
+    appointment.status = status
+    db.commit()
+    return {"message": f"Appointment status updated to {status}"}
 
 @router.post("/book-appointment", response_model=AppointmentResponse)
 def book_appointment(appt: AppointmentCreate, db: Session = Depends(get_db), current_user: HospitalStaff = Depends(get_current_user)):
@@ -127,7 +141,7 @@ def public_book_appointment(appt: AppointmentCreate, db: Session = Depends(get_d
         patient_phone=appt.patient_phone,
         appointment_date=appt.appointment_date,
         token_number=token_num,
-        booking_source="website" # Enforce online source
+        booking_source=appt.booking_source
     )
     
     db.add(new_appt)
@@ -144,7 +158,7 @@ def get_patient_appointments(phone: str, name: str, db: Session = Depends(get_db
 
     # Return appointments matching the exact name AND exact phone number
     return db.query(Appointment).options(joinedload(Appointment.doctor)) \
-             .filter(Appointment.patient_name.ilike(f"%{name}%")) \
+             .filter(Appointment.patient_name.ilike(name)) \
              .filter(Appointment.patient_phone == phone) \
              .all()
 
