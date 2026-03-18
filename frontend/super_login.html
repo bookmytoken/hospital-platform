@@ -156,12 +156,14 @@
             <div id="errorMessage"></div>
         </form>
         <div class="back-home">
-            <a href="/app/user.html">← Back to Home</a>
+            <a href="user.html">← Back to Patient Portal</a>
         </div>
     </div>
 
     <script>
-        const API_URL = 'https://hospital-platform.onrender.com';
+        const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
+            ? 'http://127.0.0.1:8000'
+            : 'https://hospital-platform.onrender.com';
 
         document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -195,8 +197,8 @@
 
                     if (verifyResponse.ok) {
                         // Store token and redirect
-                        localStorage.setItem('super_admin_token', data.access_token);
-                        window.location.href = '/app/super_admin.html';
+                        localStorage.setItem('super_token', data.access_token);
+                        window.location.href = 'super_admin.html';
                     } else {
                         errorMsg.textContent = "Access Denied: You are not a Super Admin.";
                         errorMsg.style.display = 'block';

@@ -46,6 +46,7 @@
             font-weight: 700;
             font-size: 1.5rem;
             color: var(--primary-blue);
+            margin: 0;
         }
 
         .logo span {
@@ -138,9 +139,28 @@
         }
 
         /* --- Responsive --- */
-        @media (max-width: 480px) {
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                background: var(--primary-blue);
+                padding: 15px;
+                gap: 12px;
+            }
+            header .logo {
+                color: var(--white);
+                font-size: 1.4rem;
+            }
+            .header-links {
+                width: 100%;
+                justify-content: center;
+                gap: 25px;
+            }
+            .header-links div {
+                color: var(--white) !important;
+            }
             .booking-card {
                 padding: 25px;
+                margin-top: 10px;
             }
         }
 
@@ -220,6 +240,19 @@
         .header-links {
             display: flex;
             gap: 20px;
+            align-items: center;
+        }
+        
+        .header-links div {
+            font-size: 0.95rem;
+            color: var(--text-dark);
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        
+        .header-links div:hover {
+            opacity: 0.8;
         }
 
         .status-badge {
@@ -230,8 +263,13 @@
             text-transform: uppercase;
         }
         .status-pending { background: #e0f2f1; color: var(--accent-teal); }
-        .status-visited { background: #e8f5e9; color: #2e7d32; }
-        .status-cancelled { background: #ffebee; color: #c62828; }
+        .status-visited { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+        .status-cancelled { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+        .status-calling { background: #48B0AD; color: white !important; animation: blink 1.5s infinite; border: none; font-weight: 700; }
+        
+        @keyframes blink {
+            50% { opacity: 0.5; }
+        }
     </style>
 </head>
 <body>
@@ -239,8 +277,8 @@
     <header>
         <div class="logo">✚ BookMy<span>Token</span></div>
         <div class="header-links">
-            <div style="font-size: 0.9rem; color: var(--text-dark); font-weight: 500; cursor: pointer;" onclick="toggleAppointmentsPanel()">My Appointments</div>
-            <div style="font-size: 0.9rem; color: var(--text-light); font-weight: 500; cursor: pointer;" onclick="window.location.href='/app/login.html'">Staff Login</div>
+            <div id="navApptsLink" onclick="toggleAppointmentsPanel()">My Appointments</div>
+            <div style="opacity: 0.8;" onclick="window.location.href='login.html'">Staff Login</div>
         </div>
     </header>
 
@@ -250,9 +288,15 @@
             <p>Enter your details to schedule a consultation</p>
 
             <form id="appointmentForm">
-                <div class="form-group">
-                    <label for="name">Patient Name</label>
-                    <input type="text" id="name" placeholder="e.g. John Doe" required>
+                <div class="form-group" style="display:flex; gap:15px;">
+                    <div style="flex:2;">
+                        <label for="name">Patient Name</label>
+                        <input type="text" id="name" placeholder="e.g. John Doe" required>
+                    </div>
+                    <div style="flex:1;">
+                        <label for="age">Patient Age</label>
+                        <input type="number" id="age" placeholder="Age" min="0" max="120" required>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -261,9 +305,16 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="city">Select City</label>
+                    <select id="city" required>
+                        <option value="" disabled selected>Loading cities...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
                     <label for="hospital">Select Hospital</label>
-                    <select id="hospital" required>
-                        <option value="" disabled selected>Loading hospitals...</option>
+                    <select id="hospital" required disabled>
+                        <option value="" disabled selected>Select City First</option>
                     </select>
                 </div>
 
@@ -314,7 +365,31 @@
     </div>
 
     <script>
-        const API_URL = 'https://hospital-platform.onrender.com';
+        // Detect if running locally or on Render
+        const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
+            ? 'http://127.0.0.1:8000'
+            : 'https://hospital-platform.onrender.com';
+
+        // Helper: Convert YYYY-MM-DD to DD/MM/YYYY
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const parts = dateStr.split('-');
+            if (parts.length !== 3) return dateStr;
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+
+        // Helper: Convert 24h to 12h AM/PM
+        function formatTime(timeStr) {
+            if (!timeStr) return '';
+            const parts = timeStr.split(':');
+            if (parts.length < 2) return timeStr;
+            let hour = parseInt(parts[0], 10);
+            const minute = parts[1];
+            const ampm = hour >= 12 ? 'PM' : 'AM';
+            hour = hour % 12;
+            hour = hour ? hour : 12;
+            return `${hour}:${minute} ${ampm}`;
+        }
 
         // Load Hospitals on strictly page load
         document.addEventListener('DOMContentLoaded', async () => {
@@ -372,11 +447,35 @@
         document.addEventListener('DOMContentLoaded', async () => {
              const response = await fetch(`${API_URL}/hospitals/`);
              hospitalsData = await response.json();
-             const hospitalSelect = document.getElementById('hospital');
-             hospitalSelect.innerHTML = '<option value="" disabled selected>Choose a facility</option>';
-             hospitalsData.forEach(h => {
-                 hospitalSelect.innerHTML += `<option value="${h.id}">${h.name} (${h.city})</option>`;
+             
+             const activeHospitals = hospitalsData.filter(h => h.is_active !== false);
+             const cities = [...new Set(activeHospitals.map(h => h.city))].sort();
+             
+             const citySelect = document.getElementById('city');
+             citySelect.innerHTML = '<option value="" disabled selected>Choose a city</option>';
+             cities.forEach(c => {
+                 citySelect.innerHTML += `<option value="${c}">${c}</option>`;
              });
+        });
+
+        // Load Hospitals when City changes
+        document.getElementById('city').addEventListener('change', (e) => {
+            const selectedCity = e.target.value;
+            const hospitalSelect = document.getElementById('hospital');
+            const doctorSelect = document.getElementById('doctor');
+            const scheduleSelect = document.getElementById('schedule');
+            
+            hospitalSelect.disabled = false;
+            hospitalSelect.innerHTML = '<option value="" disabled selected>Choose a facility</option>';
+            doctorSelect.disabled = true;
+            doctorSelect.innerHTML = '<option value="" disabled selected>Select Hospital First</option>';
+            scheduleSelect.disabled = true;
+            scheduleSelect.innerHTML = '<option value="" disabled selected>Select Doctor First</option>';
+
+            const cityHospitals = hospitalsData.filter(h => h.city === selectedCity && h.is_active !== false);
+            cityHospitals.forEach(h => {
+                hospitalSelect.innerHTML += `<option value="${h.id}">${h.name}</option>`;
+            });
         });
 
         // Load Schedules when Doctor or Date changes
@@ -410,9 +509,7 @@
                     } else {
                         scheduleSelect.innerHTML = '<option value="" disabled selected>Choose a time slot</option>';
                         matching.forEach(s => {
-                            const start = s.start_time.substring(0, 5);
-                            const end = s.end_time.substring(0, 5);
-                            scheduleSelect.innerHTML += `<option value="${s.id}">${start} - ${end}</option>`;
+                            scheduleSelect.innerHTML += `<option value="${s.id}">${formatTime(s.start_time)} - ${formatTime(s.end_time)}</option>`;
                         });
                     }
                 } catch (err) {
@@ -434,6 +531,7 @@
                 doctor_id: parseInt(document.getElementById('doctor').value),
                 schedule_id: parseInt(document.getElementById('schedule').value),
                 patient_name: document.getElementById('name').value,
+                patient_age: parseInt(document.getElementById('age').value),
                 patient_phone: document.getElementById('phone').value,
                 appointment_date: document.getElementById('aptDate').value,
                 booking_source: "website"
@@ -449,7 +547,7 @@
                 if (response.ok) {
                     const data = await response.json();
                     document.getElementById('displayToken').textContent = data.token_number;
-                    document.getElementById('displayDate').textContent = data.appointment_date;
+                    document.getElementById('displayDate').textContent = formatDate(data.appointment_date);
                     document.getElementById('displayDoctor').textContent = document.getElementById('doctor').options[document.getElementById('doctor').selectedIndex].text.split(' -')[0];
                     document.getElementById('successModal').style.display = 'flex';
                     document.getElementById('appointmentForm').reset();
@@ -492,13 +590,16 @@
         function toggleAppointmentsPanel() {
             const panel = document.getElementById('appointmentsPanel');
             const form = document.querySelector('.booking-card');
+            const navLink = document.getElementById('navApptsLink');
             
             if (panel.style.display === 'block') {
                 panel.style.display = 'none';
                 form.style.display = 'block';
+                if(navLink) navLink.textContent = 'My Appointments';
             } else {
                 panel.style.display = 'block';
                 form.style.display = 'none';
+                if(navLink) navLink.textContent = 'Book Appointment';
             }
         }
 
@@ -538,7 +639,7 @@
                                         <span class="status-badge status-${a.status}">${a.status}</span>
                                     </div>
                                     <div style="font-size: 0.85rem; color: var(--text-dark); margin-top: 4px;">Token: ${a.token_number}</div>
-                                    <div style="font-size: 0.85rem; color: var(--text-light);">${a.appointment_date}</div>
+                                    <div style="font-size: 0.85rem; color: var(--text-light);">${formatDate(a.appointment_date)}</div>
                                 </div>
                                 ${canCancel ? `<button class="btn-danger" onclick="cancelAppointment(${a.id}, '${name}', '${phone}')">Cancel</button>` : ''}
                             </div>

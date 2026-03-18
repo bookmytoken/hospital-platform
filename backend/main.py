@@ -59,10 +59,7 @@ app.include_router(appointment_router)
 app.include_router(auth_router)
 app.include_router(admin_router)
 
-# Serve frontend static files
+# Serve frontend static files from root
 frontend_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
-app.mount("/app", StaticFiles(directory=frontend_path, html=True), name="frontend")
-
-@app.get("/")
-def read_root():
-    return FileResponse(os.path.join(frontend_path, "user.html"))
+# Mounting at / means it will serve user.html if it finds it, but we want it as the default index
+app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")

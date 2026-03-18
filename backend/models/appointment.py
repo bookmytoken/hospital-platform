@@ -11,6 +11,7 @@ class Appointment(Base):
     doctor_id = Column(Integer, ForeignKey("doctors.id"))
     schedule_id = Column(Integer, ForeignKey("doctor_schedules.id"))
     patient_name = Column(String, nullable=False)
+    patient_age = Column(Integer, nullable=True)
     patient_phone = Column(String, nullable=True) # Making it nullable true first so we don't crash old rows
     appointment_date = Column(Date, nullable=False)
     token_number = Column(Integer, nullable=False)

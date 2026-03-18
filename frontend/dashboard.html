@@ -16,6 +16,7 @@
             --border: #E2E8F0;
             --danger: #ef4444;
             --success: #10b981;
+            --warning-color: #f59e0b;
             --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
         }
 
@@ -109,6 +110,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap; /* Fix iPad wrapping */
+            gap: 15px;
             margin-bottom: 20px;
         }
         
@@ -163,6 +166,13 @@
         }
         .status.active { background: rgba(16, 185, 129, 0.1); color: #10b981; }
         .status.inactive { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+        .status.calling { background: rgba(72, 176, 173, 0.2); color: var(--primary-blue); border: 1px solid var(--accent-teal); animation: pulse 2s infinite; }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
 
         /* Modals */
         .modal {
@@ -203,13 +213,121 @@
             background: var(--white);
         }
         form label { display: block; margin-bottom: 8px; color: var(--text-dark); font-weight: 600; font-size: 0.85rem; }
+
+        /* Hidden by default on desktop */
+        .mobile-header, .sidebar-overlay { display: none; }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            body { flex-direction: column; overflow-x: hidden; }
+            
+            /* Professional Dark Mobile Header */
+            .mobile-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 12px 20px;
+                background: var(--primary-blue);
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                color: var(--white);
+                width: 100%;
+                z-index: 900;
+                position: sticky;
+                top: 0;
+            }
+            .mobile-header .logo { 
+                margin: 0; 
+                padding: 0; 
+                font-size: 1.4rem; 
+                color: var(--white);
+                font-weight: 700;
+            }
+            .mobile-header .logo span { color: var(--accent-teal); }
+            
+            .mobile-menu-btn {
+                background: none;
+                border: none;
+                font-size: 1.8rem;
+                cursor: pointer;
+                color: var(--white);
+                padding: 5px;
+                line-height: 1;
+                display: flex;
+                align-items: center;
+            }
+            
+            /* Off-Canvas Sidebar */
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: -280px;
+                width: 250px;
+                height: 100vh;
+                background: var(--white);
+                z-index: 1000;
+                box-shadow: 2px 0 15px rgba(0,0,0,0.15);
+                transition: left 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+            }
+            .sidebar.open { left: 0; }
+            .sidebar .logo { display: none; } /* Hide Sidebar logo on mobile to prevent duplication */
+
+            .nav-link, .logout-btn {
+                padding: 15px 25px;
+                font-size: 1rem;
+                border: none;
+                border-left: 4px solid transparent;
+            }
+            .nav-link:hover, .nav-link.active {
+                background: rgba(72, 176, 173, 0.08);
+                border-left-color: var(--accent-teal);
+            }
+
+            /* Overlay */
+            .sidebar-overlay {
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(15, 23, 42, 0.6);
+                z-index: 999;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.3s ease;
+            }
+            .sidebar-overlay.open {
+                opacity: 1;
+                pointer-events: auto;
+                display: block;
+            }
+            
+            .main-content { padding: 15px; }
+            header { flex-direction: column; align-items: flex-start; gap: 5px; margin-bottom: 20px; }
+            
+            section { padding: 15px; width: 100%; overflow-x: auto; }
+            .section-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+            
+            /* Ensure tables don't squish too much, allow horizontal scroll via section overflow */
+            table { min-width: 600px; } 
+            
+            /* Fix modals */
+            .modal-content { width: 95%; max-width: none; padding: 20px; margin: 20px auto; max-height: 90vh; overflow-y: auto;}
+        }
     </style>
 </head>
 <body>
 
+    <!-- Professional Mobile Header -->
+    <div class="mobile-header">
+        <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+        <div class="logo">✚ BookMy<span>Token</span></div>
+        <div style="width: 32px;"></div> <!-- invisible spacer to perfectly center the logo -->
+    </div>
+
+    <!-- Sidebar Overlay for Mobile -->
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
     <div class="sidebar">
         <div class="logo">✚ BookMy<span style="color: var(--accent-teal);">Token</span></div>
-        <div class="nav-link active" onclick="switchTab('appointments')" id="tab-appointments">Appointments</div>
+        <div class="nav-link active" onclick="switchTab('queue')" id="tab-queue">Current Token</div>
+        <div class="nav-link" onclick="switchTab('appointments')" id="tab-appointments">Appointments</div>
         <div class="nav-link" onclick="switchTab('doctors')" id="tab-doctors">Doctors</div>
         <div class="nav-link" onclick="switchTab('schedules')" id="tab-schedules">Schedules</div>
         <div class="nav-link" onclick="switchTab('cancelled')" id="tab-cancelled">Cancelled</div>
@@ -223,12 +341,50 @@
         </header>
 
         <main class="dashboard-content">
-            <!-- Appointments Section -->
-            <section id="appointmentsSection" class="active-section">
+            <!-- Current Token / Queue Section -->
+            <section id="queueSection" class="active-section">
                 <div class="section-header">
-                    <div style="display: flex; align-items: center; gap: 15px;">
+                    <h2>Live Queue Control</h2>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <input type="date" id="queueDate" onchange="fetchQueueControl()" style="padding: 8px 12px; margin-bottom:0; width:auto; flex-grow: 1;">
+                        <select id="queueDoctorSelect" onchange="fetchQueueControl()" style="padding: 8px 12px; margin-bottom:0; width:auto; flex-grow: 1;">
+                            <option value="">Select Doctor</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="queueControlPanel" style="background: var(--white); padding: 30px; border-radius: 12px; border: 1.5px solid var(--accent-teal); box-shadow: var(--shadow); display: none; text-align: center;">
+                    <h3 style="color: var(--primary-blue); font-size: 1.5rem; margin-bottom: 10px;">Doctor: <span id="queueDoctorNameDisplay"></span></h3>
+                    
+                    <div style="font-size: 3rem; font-weight: 800; color: var(--accent-teal); margin: 20px 0;">
+                        Token #<span id="queueTokenDisplay">--</span>
+                    </div>
+                    
+                    <div id="queuePatientDisplay" style="font-size: 1.2rem; color: var(--text-dark); margin-bottom: 30px; min-height: 60px;">
+                        Patient: --
+                    </div>
+                    
+                    <div id="queueActionButtons" style="display: flex; gap: 15px; justify-content: center; margin-top: 10px;">
+                        <button class="btn" style="padding: 15px 30px; font-size: 1.1rem; background-color: var(--warning-color);" onclick="callNextTokenAction('skip')">
+                            Skip (Late) &rarr;
+                        </button>
+                        <button class="btn" style="padding: 15px 30px; font-size: 1.1rem;" onclick="callNextTokenAction('complete')">
+                            Complete & Call Next &rarr;
+                        </button>
+                    </div>
+                </div>
+
+                <div id="queueSelectPrompt" style="padding: 40px; text-align: center; color: var(--text-light); font-size: 1.1rem;">
+                    Please select a doctor to manage their live queue.
+                </div>
+            </section>
+
+            <!-- Appointments Section -->
+            <section id="appointmentsSection">
+                <div class="section-header">
+                    <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap; width: 100%;">
                         <h2>Today's Appointments</h2>
-                        <select id="appointmentDoctorFilter" onchange="filterAppointments()" style="padding: 8px 12px; margin-bottom:0; width:auto;">
+                        <select id="appointmentDoctorFilter" onchange="filterAppointments()" style="padding: 8px 12px; margin-bottom:0; width:auto; flex-grow: 1;">
                             <option value="all">All Doctors</option>
                         </select>
                         <input type="date" id="appointmentSpecificDate" onchange="filterAppointments()" style="padding: 8px 12px; margin-bottom:0; width:auto;">
@@ -246,9 +402,10 @@
                         <tr>
                             <th>Token No.</th>
                             <th>Patient Name</th>
+                            <th>Age</th>
                             <th>Doctor Name</th>
                             <th>Date</th>
-                            <th>Source</th>
+                            <th>Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -289,12 +446,7 @@
                 <table id="schedulesTable">
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Doctor ID</th>
-                            <th>Day</th>
-                            <th>Start</th>
-                            <th>End</th>
-                            <th>Max Tokens</th>
+                            <th>Doctor</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -307,9 +459,9 @@
             <!-- Cancelled Section -->
             <section id="cancelledSection">
                 <div class="section-header">
-                    <div style="display: flex; align-items: center; gap: 15px;">
+                    <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
                         <h2>Cancelled Appointments</h2>
-                        <input type="date" id="cancelledSpecificDate" onchange="filterCancelled()" style="padding: 8px 12px; margin-bottom:0; width:auto;">
+                        <input type="date" id="cancelledSpecificDate" onchange="filterCancelled()" style="padding: 8px 12px; margin-bottom:0; width:auto; flex-grow: 1;">
                     </div>
                 </div>
                 <table id="cancelledTable">
@@ -317,6 +469,7 @@
                         <tr>
                             <th>Token</th>
                             <th>Patient</th>
+                            <th>Age</th>
                             <th>Doctor</th>
                             <th>Date</th>
                             <th>Reason/Status</th>
@@ -348,13 +501,22 @@
             <span class="close" onclick="closeModal('scheduleModal')" style="float:right; cursor:pointer; font-size:1.5rem; color:var(--text-light);">&times;</span>
             <h3 style="margin-bottom: 20px;">Add Schedule</h3>
             <form id="scheduleForm">
-                <input type="number" id="schedDocId" placeholder="Doctor ID" required>
-                <input type="text" id="schedDay" placeholder="e.g. Monday" required>
-                <label>Start Time</label>
-                <input type="time" id="schedStart" required>
-                <label>End Time</label>
-                <input type="time" id="schedEnd" required>
-                <input type="number" id="schedTokens" placeholder="Max Tokens" required>
+                <select id="schedDocId" required>
+                    <option value="" disabled selected>Select Doctor</option>
+                </select>
+                <label style="margin-top: 10px;">Select Days</label>
+                <div id="schedDaysGroup" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+                    <label style="display:inline-flex; align-items:center; font-weight:normal; margin-bottom:0;"><input type="checkbox" value="Monday" style="width:auto; margin-bottom:0; margin-right:5px;"> Mon</label>
+                    <label style="display:inline-flex; align-items:center; font-weight:normal; margin-bottom:0;"><input type="checkbox" value="Tuesday" style="width:auto; margin-bottom:0; margin-right:5px;"> Tue</label>
+                    <label style="display:inline-flex; align-items:center; font-weight:normal; margin-bottom:0;"><input type="checkbox" value="Wednesday" style="width:auto; margin-bottom:0; margin-right:5px;"> Wed</label>
+                    <label style="display:inline-flex; align-items:center; font-weight:normal; margin-bottom:0;"><input type="checkbox" value="Thursday" style="width:auto; margin-bottom:0; margin-right:5px;"> Thu</label>
+                    <label style="display:inline-flex; align-items:center; font-weight:normal; margin-bottom:0;"><input type="checkbox" value="Friday" style="width:auto; margin-bottom:0; margin-right:5px;"> Fri</label>
+                    <label style="display:inline-flex; align-items:center; font-weight:normal; margin-bottom:0;"><input type="checkbox" value="Saturday" style="width:auto; margin-bottom:0; margin-right:5px;"> Sat</label>
+                    <label style="display:inline-flex; align-items:center; font-weight:normal; margin-bottom:0;"><input type="checkbox" value="Sunday" style="width:auto; margin-bottom:0; margin-right:5px;"> Sun</label>
+                </div>
+                <!-- Dynamic Time Inputs will be injected here -->
+                <div id="dayTimingsContainer" style="margin-bottom: 15px;"></div>
+                
                 <button type="submit" class="btn" style="width:100%; margin-top:10px;">Save Schedule</button>
             </form>
         </div>
@@ -366,14 +528,32 @@
             <h3 style="margin-bottom: 20px;">Edit Schedule</h3>
             <form id="editScheduleForm">
                 <input type="hidden" id="editSchedId">
+                <input type="hidden" id="editSchedDocId">
                 <label>Start Time</label>
                 <input type="time" id="editSchedStart" required>
                 <label>End Time</label>
                 <input type="time" id="editSchedEnd" required>
                 <label>Max Tokens</label>
                 <input type="number" id="editSchedTokens" required>
+                
+                <label style="display:flex; align-items:center; margin-top:20px; margin-bottom:15px; font-weight:normal; font-size:0.9rem; background: var(--bg-grey); padding:10px; border-radius:6px;">
+                    <input type="checkbox" id="editApplyAll" style="width:auto; margin-bottom:0; margin-right:8px;">
+                    Apply these timings to ALL working days for this doctor
+                </label>
+                
                 <button type="submit" class="btn btn-warning" style="width:100%; border:none; padding:10px; border-radius:6px; font-weight:600; cursor:pointer;">Update Schedule</button>
             </form>
+        </div>
+    </div>
+
+    <!-- New View Schedules Modal -->
+    <div id="viewSchedulesModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close" onclick="closeModal('viewSchedulesModal')" style="float:right; cursor:pointer; font-size:1.5rem; color:var(--text-light);">&times;</span>
+            <h3 id="viewSchedulesTitle" style="margin-bottom: 20px;">Doctor Schedules</h3>
+            <div id="viewSchedulesContainer" style="display:flex; flex-direction:column; gap:10px;">
+                <!-- Filled via JS -->
+            </div>
         </div>
     </div>
 
@@ -386,6 +566,7 @@
                     <option value="" disabled selected>Select Doctor</option>
                 </select>
                 <input type="text" id="aptPatientName" placeholder="Patient Name" required>
+                <input type="number" id="aptPatientAge" placeholder="Patient Age" required min="0" max="120">
                 <input type="tel" id="aptPatientPhone" placeholder="Patient Phone (e.g. 9876543210)" required>
                 <input type="date" id="aptDate" required>
                 <select id="aptScheduleId" required disabled>
@@ -395,7 +576,6 @@
             </form>
         </div>
     </div>
-
-    <script src="dashboard.js"></script>
+    <script src="dashboard.js?v=2"></script>
 </body>
 </html>

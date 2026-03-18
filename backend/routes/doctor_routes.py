@@ -55,6 +55,15 @@ def add_schedule(schedule: ScheduleCreate, db: Session = Depends(get_db), curren
     if not doctor or doctor.hospital_id != current_user.hospital_id:
         raise HTTPException(status_code=403, detail="Doctor not found or unauthorized")
         
+    # Check for existing schedule for this doctor on this day
+    existing_schedule = db.query(DoctorSchedule).filter(
+        DoctorSchedule.doctor_id == schedule.doctor_id,
+        DoctorSchedule.day_of_week == schedule.day_of_week
+    ).first()
+    
+    if existing_schedule:
+        raise HTTPException(status_code=400, detail=f"A schedule for {schedule.day_of_week} already exists for this doctor. Please edit the existing schedule instead.")
+        
     db_schedule = DoctorSchedule(**schedule.dict())
     db.add(db_schedule)
     db.commit()

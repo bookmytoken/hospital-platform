@@ -141,6 +141,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
             margin-bottom: 20px;
         }
         
@@ -229,9 +231,116 @@
         }
         .btn-cancel { background: #f1f5f9; color: var(--text-dark); }
         .btn-cancel:hover { background: #e2e8f0; }
+
+        /* Hidden by default on desktop */
+        .mobile-header, .sidebar-overlay { display: none; }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            body { flex-direction: column; overflow-x: hidden; }
+            
+            /* Professional Dark Mobile Header */
+            .mobile-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 12px 20px;
+                background: var(--primary-blue);
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                color: var(--white);
+                width: 100%;
+                z-index: 900;
+                position: sticky;
+                top: 0;
+            }
+            .mobile-header .logo { 
+                margin: 0; 
+                padding: 0; 
+                font-size: 1.4rem; 
+                color: var(--white);
+                font-weight: 700;
+            }
+            .mobile-header .logo span { color: var(--accent-teal); }
+            
+            .mobile-menu-btn {
+                background: none;
+                border: none;
+                font-size: 1.8rem;
+                cursor: pointer;
+                color: var(--white);
+                padding: 5px;
+                line-height: 1;
+                display: flex;
+                align-items: center;
+            }
+            
+            /* Off-Canvas Sidebar */
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: -280px;
+                width: 250px;
+                height: 100vh;
+                background: var(--white);
+                z-index: 1000;
+                box-shadow: 2px 0 15px rgba(0,0,0,0.15);
+                transition: left 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+            }
+            .sidebar.open { left: 0; }
+            .sidebar .logo { display: none; } /* Hide Sidebar logo on mobile to prevent duplication */
+
+            .nav-link, .logout-btn {
+                padding: 15px 25px;
+                font-size: 1rem;
+                border: none;
+                border-left: 4px solid transparent;
+            }
+            .nav-link:hover, .nav-link.active {
+                background: rgba(72, 176, 173, 0.08);
+                border-left-color: var(--accent-teal);
+            }
+
+            /* Overlay */
+            .sidebar-overlay {
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(15, 23, 42, 0.6);
+                z-index: 999;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.3s ease;
+            }
+            .sidebar-overlay.open {
+                opacity: 1;
+                pointer-events: auto;
+                display: block;
+            }
+            
+            .main-content { padding: 15px; }
+            header { flex-direction: column; align-items: flex-start; gap: 5px; margin-bottom: 20px; }
+            
+            .content-section { padding: 15px; width: 100%; overflow-x: auto; }
+            .section-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+            
+            /* Ensure tables scroll */
+            table { min-width: 600px; } 
+            
+            /* Fix modals */
+            .modal-content { width: 95%; max-width: none; padding: 20px; margin: 20px auto; max-height: 90vh; overflow-y: auto;}
+        }
     </style>
 </head>
 <body>
+
+    <!-- Professional Mobile Header -->
+    <div class="mobile-header">
+        <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+        <div class="logo">✚ BookMy<span>Token</span></div>
+        <div style="width: 32px;"></div> <!-- invisible spacer to perfectly center the logo -->
+    </div>
+
+    <!-- Sidebar Overlay for Mobile -->
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
 
     <div class="sidebar">
         <div class="logo">✚ BookMy<span style="color: var(--accent-teal);">Token</span></div>
@@ -353,6 +462,10 @@
                 <div class="form-group">
                     <label>Hospital Name</label>
                     <input type="text" id="hospName" required>
+                </div>
+                <div class="form-group">
+                    <label>City</label>
+                    <input type="text" id="hospCity" required placeholder="e.g. Mumbai">
                 </div>
                 <div class="form-group">
                     <label>Phone Number</label>
@@ -499,13 +612,21 @@
     </div>
 
     <script>
-        const API_URL = 'https://hospital-platform.onrender.com';
-        const token = localStorage.getItem('super_admin_token');
+        const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
+            ? 'http://127.0.0.1:8000'
+            : 'https://hospital-platform.onrender.com';
+        const token = localStorage.getItem('super_token') || localStorage.getItem('super_admin_token');
 
         // Authentication Check
         if (!token) {
-            window.location.href = '/app/super_login.html';
+            window.location.href = 'super_login.html';
         }
+
+        // Mobile Sidebar Toggle
+        window.toggleSidebar = function() {
+            document.querySelector('.sidebar').classList.toggle('open');
+            document.querySelector('.sidebar-overlay').classList.toggle('open');
+        };
 
         // Helper for authorized API calls
         async function fetchAuth(endpoint, options = {}) {
@@ -534,6 +655,12 @@
             
             document.getElementById(tabId).classList.add('active');
             event.target.classList.add('active');
+
+            // Auto-close mobile sidebar if open
+            if (window.innerWidth <= 768) {
+                document.querySelector('.sidebar').classList.remove('open');
+                document.querySelector('.sidebar-overlay').classList.remove('open');
+            }
         }
 
         // Load Dashboard Data
@@ -863,8 +990,8 @@
 
         // Logout
         function logout() {
-            localStorage.removeItem('super_admin_token');
-            window.location.href = '/app/super_login.html';
+            localStorage.removeItem('super_token');
+            window.location.href = 'super_login.html';
         }
     </script>
 </body>
