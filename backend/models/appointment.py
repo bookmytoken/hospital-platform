@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Date, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 import datetime
 from backend.database import Base
@@ -18,6 +18,10 @@ class Appointment(Base):
     booking_source = Column(String, nullable=False) # call, whatsapp, dashboard
     status = Column(String, default="pending") # pending, visited, cancelled
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint('doctor_id', 'schedule_id', 'appointment_date', 'token_number', name='_doctor_date_token_uc'),
+    )
 
     hospital = relationship("Hospital")
     doctor = relationship("Doctor")

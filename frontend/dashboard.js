@@ -208,7 +208,8 @@ function renderAppointments(appointments) {
                 <td>${appt.patient_age || '--'}</td>
                 <td>${appt.doctor_name}</td>
                 <td>${formatDate(appt.appointment_date)}</td>
-                <td><span class="status ${appt.status}">${appt.status}</span></td>
+                <td><span style="text-transform: capitalize; color: var(--text-light); font-size: 0.85rem; padding: 4px 8px; background: #f1f5f9; border-radius: 4px;">${appt.booking_source || 'Dashboard'}</span></td>
+                <td><span class="status ${statusClass}">${statusText}</span></td>
                 <td>
                     ${actionButtons}
                 </td>

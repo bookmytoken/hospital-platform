@@ -12,7 +12,7 @@ def get_next_token(db: Session, doctor_id: int, schedule_id: int, appointment_da
     schedule = db.query(DoctorSchedule).filter(
         DoctorSchedule.id == schedule_id,
         DoctorSchedule.doctor_id == doctor_id
-    ).first()
+    ).with_for_update().first()
     
     if not schedule:
         raise ValueError("Schedule not found for the given doctor")
