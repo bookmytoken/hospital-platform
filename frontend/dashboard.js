@@ -297,6 +297,7 @@ function renderCancelled(appointments) {
                 <td>${a.patient_age || '--'}</td>
                 <td>${a.doctor_name}</td>
                 <td>${formatDate(a.appointment_date)}</td>
+                <td><span style="text-transform: capitalize; color: var(--text-light); font-size: 0.82rem; padding: 3px 6px; background: #f8fafc; border-radius: 4px; border: 1px solid #e2e8f0;">${a.booking_source || 'Dashboard'}</span></td>
                 <td><span class="status cancelled">Cancelled</span></td>
             </tr>
         `;
